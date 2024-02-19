@@ -9,15 +9,18 @@ export class DrizzlePostgreSQLAdapter implements Adapter {
 
 	private sessionTable: PostgreSQLSessionTable;
 	private userTable: PostgreSQLUserTable;
+	private profileTable: PostgreSQLProfileTable;
 
 	constructor(
 		db: PgDatabase<any, any, any>,
 		sessionTable: PostgreSQLSessionTable,
-		userTable: PostgreSQLUserTable
+		userTable: PostgreSQLUserTable,
+		profileTable: PostgreSQLProfileTable,
 	) {
 		this.db = db;
 		this.sessionTable = sessionTable;
 		this.userTable = userTable;
+		this.profileTable = profileTable;
 	}
 
 	public async deleteSession(sessionId: string): Promise<void> {
@@ -34,10 +37,12 @@ export class DrizzlePostgreSQLAdapter implements Adapter {
 		const result = await this.db
 			.select({
 				user: this.userTable,
-				session: this.sessionTable
+				session: this.sessionTable,
+				profile: this.profileTable,
 			})
 			.from(this.sessionTable)
 			.innerJoin(this.userTable, eq(this.sessionTable.userId, this.userTable.id))
+			.innerJoin(this.profileTable, eq(this.userTable.id, this.profileTable.userId))
 			.where(eq(this.sessionTable.id, sessionId));
 		if (result.length !== 1) return [null, null];
 		return [
@@ -101,6 +106,43 @@ export type PostgreSQLUserTable = PgTableWithColumns<{
 	schema: any;
 	name: any;
 }>;
+
+export type PostgreSQLProfileTable = PgTableWithColumns<{
+	dialect: "pg";
+	columns: {
+		id: PgColumn<
+			{
+				name: any;
+				tableName: any;
+				dataType: any;
+				columnType: any;
+				data: string;
+				driverParam: any;
+				notNull: true;
+				hasDefault: boolean; // must be boolean instead of any to allow default values
+				enumValues: any;
+				baseColumn: any;
+			},
+			object
+		>;
+		userId: PgColumn<
+			{
+				dataType: any;
+				notNull: true;
+				enumValues: any;
+				tableName: any;
+				columnType: any;
+				data: string;
+				driverParam: any;
+				hasDefault: false;
+				name: any;
+			},
+			object
+		>;
+	};
+	schema: any;
+	name: any;
+}>
 
 export type PostgreSQLSessionTable = PgTableWithColumns<{
 	dialect: "pg";
